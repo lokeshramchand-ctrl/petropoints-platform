@@ -1,5 +1,9 @@
 {$API_DOMAIN} {
 	encode zstd gzip
+
+	# Prometheus scrapes the API over the private network; never expose it publicly.
+	respond /metrics 404
+
 	reverse_proxy api:3000 {
 		lb_policy least_conn
 		health_uri /health/ready
