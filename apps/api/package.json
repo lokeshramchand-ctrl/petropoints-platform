@@ -9,9 +9,15 @@
     "dev": "tsx watch src/main.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "migrate": "tsx src/db/migrate-cli.ts"
+    "migrate": "tsx src/db/migrate-cli.ts",
+    "seed:admin": "tsx src/db/seed-admin.ts",
+    "worker:relay": "tsx src/workers/outbox-relay.ts",
+    "worker:notifications": "tsx src/workers/notifications.ts",
+    "worker:analytics": "tsx src/workers/analytics-sink.ts",
+    "start": "node dist/main.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1152.0",
     "@fastify/cors": "^11.3.1",
     "@fastify/helmet": "^13.2.0",
     "@fastify/rate-limit": "^11.2.1",

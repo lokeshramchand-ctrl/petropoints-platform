@@ -50,14 +50,14 @@ balances **on the client** (`newPoints = currentPoints + points` then `PUT /upda
 | Gold (serving)    | ClickHouse MVs             | Daily merchant/outlet aggregates, customer cohorts       |
 | Quality           | Contract + dbt-style tests | Non-null, uniqueness, ledger-sums-to-zero reconciliation |
 
-A **nightly reconciliation job** proves `SUM(ledger) == wallet.balance` for every wallet and
+The ledger invariants are enforced in the database (balanced per transaction at COMMIT, append-only, no negative wallet). A **nightly reconciliation job** _(planned)_ should additionally prove `SUM(ledger) == wallet.balance` for every wallet and
 `SUM(entries per txn) == 0`; mismatches page on-call.
 
 ## Scalability levers
 
 - Stateless API → horizontal scale behind a load balancer; readiness/liveness probes.
 - Wallet row locking (`SELECT … FOR UPDATE`) per wallet only; no global locks.
-- Ledger partitioned by month; hot reads served from `wallets` + Redis.
+- Hot reads served from the denormalised wallet balance (`accounts.balance`), kept equal to the ledger sum in the same DB transaction. **Planned:** range-partition `ledger_entries` by month once volume warrants it (deferred constraint triggers need care on partitioned tables; deliberately not done yet). Redis caching of reads is likewise not wired in yet.
 - Read replicas for reports (admin web reads via `reporting` pool).
 - Rate limiting per IP/user/device (Redis token bucket).
 - Async everything non-critical (email, push, analytics) via the outbox → bus.
