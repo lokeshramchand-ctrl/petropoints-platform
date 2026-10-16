@@ -156,6 +156,9 @@ importers:
       '@petropoints/mobile-core':
         specifier: workspace:*
         version: link:../../packages/mobile-core
+      '@petropoints/mobile-ui':
+        specifier: workspace:*
+        version: link:../../packages/mobile-ui
       '@petropoints/rbac':
         specifier: workspace:*
         version: link:../../packages/rbac
