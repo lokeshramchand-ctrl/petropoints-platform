@@ -1,0 +1,80 @@
+name: petropoints-prod
+
+# Single-host PRODUCTION REFERENCE. Real deployments should run on Kubernetes with managed
+# Postgres/Redis/Kafka. Every secret is required from the environment: compose fails if one is missing.
+x-api-common: &api-common
+  image: ${API_IMAGE:?API_IMAGE is required}
+  restart: unless-stopped
+  env_file: [../.env.production]
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_healthy }
+  read_only: true
+  security_opt: ['no-new-privileges:true']
+  cap_drop: [ALL]
+  deploy:
+    resources:
+      limits: { cpus: '1.0', memory: 512M }
+
+services:
+  api:
+    <<: *api-common
+    command: ['node', 'dist/main.js']
+    deploy:
+      replicas: 2
+      resources:
+        limits: { cpus: '1.0', memory: 512M }
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:3000/health/ready').then(r=>process.exit(r.ok?0:1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  outbox-relay:
+    <<: *api-common
+    command: ['node', 'dist/workers/outbox-relay.js']
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: ${POSTGRES_DB:?}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER}']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes', '--requirepass', '${REDIS_PASSWORD:?}']
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ['80:80', '443:443']
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  redisdata:
+  caddy_data:

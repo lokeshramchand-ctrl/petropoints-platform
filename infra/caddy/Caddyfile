@@ -1,0 +1,13 @@
+{$API_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy api:3000 {
+		lb_policy least_conn
+		health_uri /health/ready
+		health_interval 10s
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+}
