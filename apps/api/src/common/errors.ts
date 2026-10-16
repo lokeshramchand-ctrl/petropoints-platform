@@ -59,3 +59,23 @@ export class ConflictError extends DomainError {
     super('CONFLICT', message, 409);
   }
 }
+
+export class UnauthorizedError extends DomainError {
+  constructor(message = 'Invalid credentials') {
+    super('UNAUTHORIZED', message, 401);
+  }
+}
+
+export class AccountLockedError extends DomainError {
+  constructor(until: Date) {
+    super('ACCOUNT_LOCKED', 'Too many failed attempts. Try again later.', 423, {
+      retryAt: until.toISOString(),
+    });
+  }
+}
+
+export class RateLimitedError extends DomainError {
+  constructor() {
+    super('RATE_LIMITED', 'Too many requests', 429);
+  }
+}
