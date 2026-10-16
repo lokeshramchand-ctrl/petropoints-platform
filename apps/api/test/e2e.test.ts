@@ -175,7 +175,7 @@ describe('pump flow', () => {
 
   it('customer sees the balance and history; the slip verifies publicly', async () => {
     const w = await call('GET', '/v1/me/wallet', { token: customerToken });
-    expect(w.json().balance).toBe(25);
+    expect(w.json()).toMatchObject({ balance: 25, mobile: '+919876543210' });
 
     const h = await call('GET', '/v1/transactions?limit=10', { token: customerToken });
     expect(h.json().items).toHaveLength(1);

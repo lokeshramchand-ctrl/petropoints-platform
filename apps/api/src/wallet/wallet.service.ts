@@ -35,17 +35,19 @@ function decodeCursor(cursor: string): { at: string; id: string } {
 export class WalletService {
   constructor(private readonly db: Db) {}
 
-  async myWallet(p: Principal): Promise<{ balance: number; customerId: string; name: string }> {
+  async myWallet(
+    p: Principal,
+  ): Promise<{ balance: number; customerId: string; name: string; mobile: string }> {
     const r = (
-      await this.db.query<{ id: string; name: string; balance: string }>(
-        `SELECT c.id, c.name, a.balance FROM customers c
+      await this.db.query<{ id: string; name: string; mobile: string; balance: string }>(
+        `SELECT c.id, c.name, c.mobile, a.balance FROM customers c
            JOIN accounts a ON a.customer_id = c.id AND a.kind = 'CUSTOMER_WALLET'
           WHERE c.user_id = $1`,
         [p.userId],
       )
     ).rows[0];
     if (!r) throw new NotFoundError('Wallet');
-    return { customerId: r.id, name: r.name, balance: Number(r.balance) };
+    return { customerId: r.id, name: r.name, mobile: r.mobile, balance: Number(r.balance) };
   }
 
   /**
