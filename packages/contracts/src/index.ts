@@ -176,10 +176,19 @@ export const pointsReversedV1 = eventBase.extend({
   reason: z.string(),
 });
 
+export const userRegisteredV1 = eventBase.extend({
+  type: z.literal('user.registered.v1'),
+  userId: uuid,
+  email: z.string().email(),
+  name: z.string(),
+  role: roleSchema,
+});
+
 export const domainEvent = z.discriminatedUnion('type', [
   pointsEarnedV1,
   pointsRedeemedV1,
   pointsReversedV1,
+  userRegisteredV1,
 ]);
 export type DomainEvent = z.infer<typeof domainEvent>;
 
@@ -187,6 +196,7 @@ export const TOPICS = {
   'points.earned.v1': 'petropoints.points.earned.v1',
   'points.redeemed.v1': 'petropoints.points.redeemed.v1',
   'points.reversed.v1': 'petropoints.points.reversed.v1',
+  'user.registered.v1': 'petropoints.user.registered.v1',
 } as const;
 
 /* ---------- earn rule ---------- */
