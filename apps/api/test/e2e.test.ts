@@ -308,3 +308,34 @@ describe('security', () => {
     expect(audit[0]).toMatchObject({ action: 'staff.disabled' });
   });
 });
+
+describe('reporting', () => {
+  it('buckets days in IST: 02:00 IST is still the previous day in UTC but belongs to the IST day', async () => {
+    const ist = (d: Date) =>
+      new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+    const istYesterday = ist(new Date(Date.now() - 86_400_000));
+    // 02:00 IST == 20:30 UTC of the day before. A UTC bucket would put it on the wrong day.
+    const at = `${istYesterday}T02:00:00+05:30`;
+
+    const ids = (
+      await db.query<{ c: string; o: string; a: string }>(
+        `SELECT (SELECT id FROM customers LIMIT 1) AS c, $1::uuid AS o,
+                (SELECT id FROM users WHERE role = 'SUPER_ADMIN' LIMIT 1) AS a`,
+        [outletId],
+      )
+    ).rows[0]!;
+    await db.query(
+      `INSERT INTO transactions (type, customer_id, merchant_id, outlet_id, actor_user_id, idempotency_key,
+                                 request_hash, points, amount_paise, balance_after, created_at)
+       VALUES ('EARN', $1, $2, $3, $4, 'tz-test-key-0000000001', 'h', 7, 70000, 7, $5)`,
+      [ids.c, merchantId, ids.o, ids.a, at],
+    );
+
+    const r = await call('GET', `/v1/merchants/${merchantId}/reports/daily?days=7`, {
+      token: adminToken,
+    });
+    expect(r.statusCode).toBe(200);
+    const row = r.json().find((d: { day: string }) => d.day === istYesterday);
+    expect(row).toMatchObject({ earned: 7, salesPaise: 70000, transactions: 1 });
+  });
+});

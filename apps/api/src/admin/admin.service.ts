@@ -273,7 +273,7 @@ export class AdminService {
         sales_paise: string;
         txns: string;
       }>(
-        `SELECT to_char(date_trunc('day', created_at), 'YYYY-MM-DD') AS day,
+        `SELECT to_char((created_at AT TIME ZONE 'Asia/Kolkata')::date, 'YYYY-MM-DD') AS day,
                 COALESCE(SUM(points) FILTER (WHERE type = 'EARN'), 0) AS earned,
                 COALESCE(-SUM(points) FILTER (WHERE type = 'REDEEM'), 0) AS redeemed,
                 COALESCE(SUM(amount_paise) FILTER (WHERE type = 'EARN'), 0) AS sales_paise,

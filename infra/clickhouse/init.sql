@@ -43,7 +43,7 @@ ORDER BY (day, merchant_id, outlet_id);
 CREATE MATERIALIZED VIEW IF NOT EXISTS analytics.daily_outlet_stats_mv
 TO analytics.daily_outlet_stats AS
 SELECT
-    toDate(occurred_at)                                   AS day,
+    toDate(occurred_at, 'Asia/Kolkata')                   AS day,  -- business day in IST, not UTC
     merchant_id,
     outlet_id,
     -- reversals net out the original: reversing an EARN has negative points, reversing a REDEEM positive
