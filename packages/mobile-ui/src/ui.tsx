@@ -12,6 +12,7 @@ import {
   View,
   type StyleProp,
   type TextInputProps,
+  type TextStyle,
   type ViewStyle,
 } from 'react-native';
 import { TOUCH, radius, space, useTheme } from './theme';
@@ -92,14 +93,10 @@ export function Body({
 }: {
   children: ReactNode;
   muted?: boolean;
-  style?: StyleProp<ViewStyle> & object;
+  style?: StyleProp<TextStyle>;
 }) {
   const t = useTheme();
-  return (
-    <Text style={[{ color: muted ? t.muted : t.text, fontSize: 15 }, style as object]}>
-      {children}
-    </Text>
-  );
+  return <Text style={[{ color: muted ? t.muted : t.text, fontSize: 15 }, style]}>{children}</Text>;
 }
 
 export function Button({
