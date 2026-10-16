@@ -11,7 +11,12 @@ afterAll(() => db.close());
 describe('migrations', () => {
   it('apply cleanly on an empty database', async () => {
     const ran = await migrate(db);
-    expect(ran).toEqual(['001_tenancy.sql', '002_ledger.sql', '003_outbox_audit.sql']);
+    expect(ran).toEqual([
+      '001_tenancy.sql',
+      '002_ledger.sql',
+      '003_outbox_audit.sql',
+      '004_processed_events.sql',
+    ]);
   });
 
   it('are idempotent', async () => {

@@ -174,6 +174,11 @@ export const pointsReversedV1 = eventBase.extend({
   customerId: uuid,
   points: z.number().int(),
   reason: z.string(),
+  // added after v1 shipped: optional => old producers/consumers stay compatible (no version bump)
+  merchantId: uuid.optional(),
+  outletId: uuid.optional(),
+  originalType: z.enum(['EARN', 'REDEEM']).optional(),
+  amountPaise: z.number().int().positive().optional(),
 });
 
 export const userRegisteredV1 = eventBase.extend({
