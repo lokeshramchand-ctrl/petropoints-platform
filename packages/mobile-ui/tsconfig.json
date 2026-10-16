@@ -1,0 +1,11 @@
+{
+  "extends": "@petropoints/tsconfig/base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "lib": ["ES2023", "DOM"],
+    "noEmit": true,
+    "declaration": false,
+    "types": []
+  },
+  "include": ["src"]
+}
