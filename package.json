@@ -28,6 +28,6 @@
     "typescript": "~5.9.3"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,json,md,yml,yaml,sql}": "prettier --write"
+    "*.{ts,tsx,js,json,md,yml,yaml}": "prettier --write"
   }
 }
