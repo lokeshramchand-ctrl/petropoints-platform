@@ -1,14 +1,5 @@
 import { formatPoints } from '@petropoints/mobile-core';
-import {
-  Body,
-  Card,
-  ErrorBanner,
-  Heading,
-  Screen,
-  Spinner,
-  space,
-  useTheme,
-} from '@petropoints/mobile-ui';
+import { Body, Card, ErrorBanner, Heading, Spinner, space, useTheme } from '@petropoints/mobile-ui';
 import { useQuery } from '@tanstack/react-query';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';

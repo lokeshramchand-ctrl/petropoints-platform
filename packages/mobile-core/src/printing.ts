@@ -123,9 +123,7 @@ export function slipQrPayload(s: SlipView): string {
   return ['PP1', s.slipNumber, s.transactionId, s.points, s.createdAt, s.signature].join('|');
 }
 
-export function parseSlipQr(
-  payload: string,
-): {
+export function parseSlipQr(payload: string): {
   slipNumber: string;
   transactionId: string;
   points: number;

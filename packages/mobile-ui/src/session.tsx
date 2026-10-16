@@ -1,4 +1,4 @@
-import { MobileApiClient, type KeyValueStore } from '@petropoints/mobile-core';
+import type { KeyValueStore, MobileApiClient } from '@petropoints/mobile-core';
 import type { TokenPair } from '@petropoints/contracts';
 import type { Principal, Role } from '@petropoints/rbac';
 import * as SecureStore from 'expo-secure-store';
