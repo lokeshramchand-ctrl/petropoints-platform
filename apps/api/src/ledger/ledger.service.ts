@@ -250,6 +250,10 @@ export class LedgerService {
           customerId: original.customer_id,
           points: effect,
           reason,
+          ...(original.merchant_id && { merchantId: original.merchant_id }),
+          ...(original.outlet_id && { outletId: original.outlet_id }),
+          originalType: original.type as 'EARN' | 'REDEEM',
+          ...(original.amount_paise && { amountPaise: Number(original.amount_paise) }),
         });
         return this.result(q, txnId, null, false);
       });
