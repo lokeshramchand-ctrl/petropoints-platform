@@ -7,6 +7,11 @@ import {
   MemoryStore,
   MobileApiClient,
   OfflineQueue,
+  PosTerminal,
+  type PosApi,
+  type PosPayload,
+  type PosResult,
+  type PrinterPort,
   encodeSlip,
   formatRupees,
   isRetryable,
@@ -322,5 +327,147 @@ describe('MobileApiClient', () => {
     const err = (await c.request('/slow', { timeoutMs: 20 }).catch((e: unknown) => e)) as Error;
     expect(err.name).toBe('AbortError');
     expect(isRetryable(err)).toBe(true);
+  });
+});
+
+describe('PosTerminal', () => {
+  const earnBody = {
+    customerMobile: '+919876543210',
+    outletId: '3b241101-e2bb-4255-8caf-4136c566a962',
+    amountPaise: 250_000,
+    fuelType: 'PETROL' as const,
+  };
+  const result = (over: Partial<PosResult> = {}): PosResult => ({
+    transactionId: 't1',
+    type: 'EARN',
+    points: 25,
+    balanceAfter: 25,
+    slip,
+    replayed: false,
+    ...over,
+  });
+  const setup = (api: Partial<PosApi>, printer: PrinterPort | null = new MemoryPrinter()) => {
+    let n = 0;
+    const queue = new OfflineQueue<PosPayload, PosResult>(
+      new MemoryStore(),
+      () => `idem-${String(++n).padStart(16, '0')}`,
+    );
+    const full: PosApi = {
+      earn: async () => result(),
+      redeem: async () => result({ type: 'REDEEM', points: -5 }),
+      ...api,
+    };
+    return { queue, term: new PosTerminal(queue, full, printer), printer };
+  };
+
+  it('sends, prints the slip, and leaves nothing queued', async () => {
+    const { term, queue, printer } = setup({});
+    const out = await term.submit('earn', earnBody);
+    expect(out).toMatchObject({ status: 'done', print: 'printed', syncedEarlier: 0 });
+    expect((printer as MemoryPrinter).jobs).toHaveLength(1);
+    expect(await queue.size()).toBe(0);
+  });
+
+  it('uses the queued command id as the Idempotency-Key', async () => {
+    const keys: string[] = [];
+    const { term } = setup({ earn: async (_b, key) => (keys.push(key), result()) });
+    await term.submit('earn', earnBody);
+    expect(keys).toEqual(['idem-0000000000000001']);
+  });
+
+  it('queues safely when offline, then sends ONCE with the same key on reconnect', async () => {
+    const keys: string[] = [];
+    let online = false;
+    const { term, queue } = setup({
+      earn: async (_b, key) => {
+        if (!online) throw new TypeError('Network request failed');
+        keys.push(key);
+        return result();
+      },
+    });
+    const first = await term.submit('earn', earnBody);
+    expect(first).toMatchObject({ status: 'queued' });
+    expect(await term.pending()).toBe(1);
+
+    online = true;
+    const sync = await term.sync();
+    expect(sync.sent).toHaveLength(1);
+    expect(keys).toEqual(['idem-0000000000000001']);
+    expect(await queue.size()).toBe(0);
+  });
+
+  it('a lost response is recovered without double-awarding (server replays by key)', async () => {
+    let calls = 0;
+    const seenKeys = new Set<string>();
+    const { term } = setup({
+      earn: async (_b, key) => {
+        calls++;
+        seenKeys.add(key);
+        if (calls === 1) throw new TypeError('connection reset after the server applied it');
+        return result({ replayed: true });
+      },
+    });
+    expect((await term.submit('earn', earnBody)).status).toBe('queued');
+    const sync = await term.sync();
+    expect(sync.sent[0]!.result.replayed).toBe(true);
+    expect(seenKeys.size).toBe(1); // both attempts used the same key
+  });
+
+  it('reports a server rejection and clears the queue so it is not retried forever', async () => {
+    const { term, queue } = setup({
+      redeem: async () => {
+        throw new ApiError(409, 'INSUFFICIENT_POINTS', 'Customer has 3 points, 50 requested');
+      },
+    });
+    const out = await term.submit('redeem', {
+      customerMobile: earnBody.customerMobile,
+      outletId: earnBody.outletId,
+      points: 50,
+    });
+    expect(out).toEqual({
+      status: 'rejected',
+      code: 'INSUFFICIENT_POINTS',
+      message: 'Customer has 3 points, 50 requested',
+    });
+    expect(await queue.size()).toBe(0);
+  });
+
+  it('a printer failure never turns a successful sale into a failure', async () => {
+    const broken: PrinterPort = {
+      name: 'broken',
+      print: async () => Promise.reject(new Error('Paper out')),
+    };
+    const { term } = setup({}, broken);
+    const out = await term.submit('earn', earnBody);
+    expect(out).toMatchObject({ status: 'done', print: { failed: 'Paper out' } });
+  });
+
+  it('works without a printer attached', async () => {
+    const { term } = setup({}, null);
+    expect(await term.submit('earn', earnBody)).toMatchObject({
+      status: 'done',
+      print: 'no-printer',
+    });
+  });
+
+  it('reprint sends the slip to the printer', async () => {
+    const { term, printer } = setup({});
+    await term.reprint(slip);
+    expect((printer as MemoryPrinter).jobs).toHaveLength(1);
+  });
+
+  it('counts earlier offline sales that were synced alongside this one', async () => {
+    let online = false;
+    const { term } = setup({
+      earn: async () => {
+        if (!online) throw new TypeError('offline');
+        return result();
+      },
+    });
+    await term.submit('earn', earnBody);
+    await term.submit('earn', earnBody);
+    online = true;
+    const out = await term.submit('earn', earnBody);
+    expect(out).toMatchObject({ status: 'done', syncedEarlier: 2 });
   });
 });
