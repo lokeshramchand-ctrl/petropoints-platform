@@ -1,0 +1,33 @@
+{
+  "name": "petropoints-platform",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.34.7",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "infra:up": "docker compose -f infra/docker-compose.dev.yml up -d",
+    "infra:down": "docker compose -f infra/docker-compose.dev.yml down",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.0",
+    "@commitlint/config-conventional": "^19.8.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.0.0",
+    "prettier": "^3.5.3",
+    "turbo": "^2.5.0",
+    "typescript": "~5.9.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,json,md,yml,yaml,sql}": "prettier --write"
+  }
+}
