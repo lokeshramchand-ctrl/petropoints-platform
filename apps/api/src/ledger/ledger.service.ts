@@ -307,9 +307,33 @@ export class LedgerService {
   /* ------------------------------------------------------------------ queries */
 
   async getSlip(actor: Actor, transactionId: string): Promise<SlipView> {
-    const view = await this.db.tx((q) => this.loadSlip(q, transactionId));
-    if (!view) throw new NotFoundError('Slip');
-    return view.slip;
+    return this.db.tx(async (q) => {
+      const owner = (
+        await q.query<{
+          merchant_id: string | null;
+          outlet_id: string | null;
+          owner_user_id: string;
+        }>(
+          `SELECT t.merchant_id, t.outlet_id, c.user_id AS owner_user_id
+             FROM transactions t JOIN customers c ON c.id = t.customer_id WHERE t.id = $1`,
+          [transactionId],
+        )
+      ).rows[0];
+      // Same response for "missing" and "not yours": don't leak which transaction ids exist.
+      if (
+        !owner ||
+        !authorize(actor, 'transaction:read', {
+          ownerUserId: owner.owner_user_id,
+          merchantId: owner.merchant_id ?? undefined,
+          outletId: owner.outlet_id ?? undefined,
+        })
+      ) {
+        throw new NotFoundError('Slip');
+      }
+      const view = await this.loadSlip(q, transactionId);
+      if (!view) throw new NotFoundError('Slip');
+      return view.slip;
+    });
   }
 
   /* ------------------------------------------------------------------ internals */

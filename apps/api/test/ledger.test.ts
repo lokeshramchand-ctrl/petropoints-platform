@@ -269,3 +269,20 @@ describe('database invariants (hold even if application code is bypassed)', () =
     ).rejects.toThrow(/accounts_wallet_nonneg_chk/);
   });
 });
+
+describe('slip access control', () => {
+  it('lets the customer, their merchant and platform staff read it, and nobody else', async () => {
+    const r = await ledger.earn(w.cashierA1, key(), earnReq());
+    await expect(ledger.getSlip(w.customerActor, r.transactionId)).resolves.toMatchObject({
+      slipNumber: r.slip!.slipNumber,
+    });
+    await expect(ledger.getSlip(w.ownerA, r.transactionId)).resolves.toBeTruthy();
+    await expect(ledger.getSlip(w.support, r.transactionId)).resolves.toBeTruthy();
+    await expect(ledger.getSlip(w.ownerB, r.transactionId)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+    await expect(ledger.getSlip(w.cashierA2, r.transactionId)).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
+});
