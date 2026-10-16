@@ -24,23 +24,18 @@ export const fuelType = z.enum(FUEL_TYPES);
 
 /* ---------- auth ---------- */
 
+/** trim + lowercase BEFORE validating, so " Foo@Bar.com " is accepted and normalised. */
+export const email = z.string().trim().toLowerCase().email().max(254);
+
 export const loginRequest = z.object({
-  email: z
-    .string()
-    .email()
-    .max(254)
-    .transform((s) => s.toLowerCase().trim()),
+  email,
   password: z.string().min(8).max(128),
 });
 export type LoginRequest = z.infer<typeof loginRequest>;
 
 export const registerCustomerRequest = z.object({
   name: z.string().trim().min(2).max(100),
-  email: z
-    .string()
-    .email()
-    .max(254)
-    .transform((s) => s.toLowerCase().trim()),
+  email,
   mobile,
   password: z.string().min(8).max(128),
   city: z.string().trim().max(80).optional(),
